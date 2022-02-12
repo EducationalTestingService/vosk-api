@@ -18,14 +18,14 @@ EXTRA_LDFLAGS?=
 OUTDIR?=.
 
 VOSK_SOURCES= \
-	kaldi_recognizer.cc \
+	recognizer.cc \
 	language_model.cc \
 	model.cc \
 	spk_model.cc \
 	vosk_api.cc
 
 VOSK_HEADERS= \
-	kaldi_recognizer.h \
+	recognizer.h \
 	language_model.h \
 	model.h \
 	spk_model.h \
@@ -39,13 +39,13 @@ LIBS= \
 	$(KALDI_ROOT)/src/decoder/kaldi-decoder.a \
 	$(KALDI_ROOT)/src/ivector/kaldi-ivector.a \
 	$(KALDI_ROOT)/src/gmm/kaldi-gmm.a \
-	$(KALDI_ROOT)/src/nnet3/kaldi-nnet3.a \
 	$(KALDI_ROOT)/src/tree/kaldi-tree.a \
 	$(KALDI_ROOT)/src/feat/kaldi-feat.a \
 	$(KALDI_ROOT)/src/lat/kaldi-lat.a \
 	$(KALDI_ROOT)/src/lm/kaldi-lm.a \
 	$(KALDI_ROOT)/src/rnnlm/kaldi-rnnlm.a \
 	$(KALDI_ROOT)/src/hmm/kaldi-hmm.a \
+	$(KALDI_ROOT)/src/nnet3/kaldi-nnet3.a \
 	$(KALDI_ROOT)/src/transform/kaldi-transform.a \
 	$(KALDI_ROOT)/src/cudamatrix/kaldi-cudamatrix.a \
 	$(KALDI_ROOT)/src/matrix/kaldi-matrix.a \
@@ -54,6 +54,8 @@ LIBS= \
 	$(KALDI_ROOT)/src/base/kaldi-base.a \
 	$(OPENFST_ROOT)/lib/libfst.a \
 	$(OPENFST_ROOT)/lib/libfstngram.a
+
+LDFLAGS =
 
 
 ifeq ($(HAVE_OPENBLAS_CLAPACK), 1)
@@ -66,23 +68,32 @@ ifeq ($(HAVE_OPENBLAS_CLAPACK), 1)
 endif
 
 ifeq ($(HAVE_MKL), 1)
-    CFLAGS += -I$(MKL_ROOT)/include
-    LIBS += -L$(MKL_ROOT)/lib/intel64 -Wl,-rpath=$(MKL_ROOT)/lib/intel64 -lmkl_rt -lmkl_intel_lp64 -lmkl_core -lmkl_sequential
+    CFLAGS += -DHAVE_MKL=1 -I$(MKL_ROOT)/include
+    LDFLAGS += -L$(MKL_ROOT)/lib/intel64 -Wl,-rpath=$(MKL_ROOT)/lib/intel64 -lmkl_rt -lmkl_intel_lp64 -lmkl_core -lmkl_sequential
 endif
 
 ifeq ($(HAVE_ACCELERATE), 1)
-    LIBS += -framework Accelerate
+    LDFLAGS += -framework Accelerate
 endif
 
 ifeq ($(HAVE_CUDA), 1)
+    VOSK_SOURCES += batch_recognizer.cc
+    VOSK_HEADERS += batch_recognizer.h
+
     CFLAGS+=-DHAVE_CUDA=1 -I$(CUDA_ROOT)/include
-    LIBS+=-L$(CUDA_ROOT)/lib64 -lcuda -lcublas -lcusparse -lcudart -lcurand -lcufft -lcusolver -lnvToolsExt
+
+    LIBS := \
+        $(KALDI_ROOT)/src/cudadecoder/kaldi-cudadecoder.a \
+        $(KALDI_ROOT)/src/cudafeat/kaldi-cudafeat.a \
+        $(LIBS)
+
+    LDFLAGS += -L$(CUDA_ROOT)/lib64 -lcuda -lcublas -lcusparse -lcudart -lcurand -lcufft -lcusolver -lnvToolsExt
 endif
 
 all: $(OUTDIR)/libvosk.$(EXT)
 
-$(OUTDIR)/libvosk.$(EXT): $(VOSK_SOURCES:%.cc=$(OUTDIR)/%.o)
-	$(CXX) --shared -s -o $@ $^ $(LIBS) -lm -latomic $(EXTRA_LDFLAGS)
+$(OUTDIR)/libvosk.$(EXT): $(VOSK_SOURCES:%.cc=$(OUTDIR)/%.o) $(LIBS)
+	$(CXX) --shared -s -o $@ $^ $(LDFLAGS) -lm -latomic $(EXTRA_LDFLAGS)
 
 $(OUTDIR)/%.o: %.cc $(VOSK_HEADERS)
 	$(CXX) $(CFLAGS) -c -o $@ $<

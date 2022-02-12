@@ -33,23 +33,24 @@
 
 using namespace kaldi;
 
-enum KaldiRecognizerState {
+enum RecognizerState {
     RECOGNIZER_INITIALIZED,
     RECOGNIZER_RUNNING,
     RECOGNIZER_ENDPOINT,
     RECOGNIZER_FINALIZED
 };
 
-class KaldiRecognizer {
+class Recognizer {
     public:
-        KaldiRecognizer(Model *model, float sample_frequency);
-        KaldiRecognizer(Model *model, float sample_frequency, SpkModel *spk_model);
-        KaldiRecognizer(Model *model, float sample_frequency, char const *grammar);
-        ~KaldiRecognizer();
+        Recognizer(Model *model, float sample_frequency);
+        Recognizer(Model *model, float sample_frequency, SpkModel *spk_model);
+        Recognizer(Model *model, float sample_frequency, char const *grammar);
+        ~Recognizer();
         void SetMaxAlternatives(int max_alternatives);
         void SetResultOptions(const char *result_opts);
         void SetSpkModel(SpkModel *spk_model);
         void SetWords(bool words);
+        void SetNLSML(bool nlsml);
         bool AcceptWaveform(const char *data, int len);
         bool AcceptWaveform(const short *sdata, int len);
         bool AcceptWaveform(const float *fdata, int len);
@@ -71,6 +72,7 @@ class KaldiRecognizer {
         const char *MbrResult(CompactLattice &clat);
         const char *WordandPhoneResult(CompactLattice &clat);
         const char *NbestResult(CompactLattice &clat);
+        const char *NlsmlResult(CompactLattice &clat);
 
         Model *model_ = nullptr;
         SingleUtteranceNnet3Decoder *decoder_ = nullptr;
@@ -97,6 +99,7 @@ class KaldiRecognizer {
         int max_alternatives_ = 0; // Disable alternatives by default
         const char *result_opts_ = "words"; // By default enable only word-level results
         bool words_ = false;
+        bool nlsml_ = false;
 
         float sample_frequency_;
         int32 frame_offset_;
@@ -104,7 +107,7 @@ class KaldiRecognizer {
         int64 samples_processed_;
         int64 samples_round_start_;
 
-        KaldiRecognizerState state_;
+        RecognizerState state_;
         string last_result_;
 };
 

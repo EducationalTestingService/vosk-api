@@ -44,7 +44,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="vosk",
-    version="0.3.41",
+    version="0.3.42",
     author="Educational Testing Service",
     author_email="rubale@ets.org",
     description="Offline open source speech recognition API based on Kaldi and Vosk with additional features from ETS",

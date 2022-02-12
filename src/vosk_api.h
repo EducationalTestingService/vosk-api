@@ -39,6 +39,10 @@ typedef struct VoskSpkModel VoskSpkModel;
  *  speaker information and so on */
 typedef struct VoskRecognizer VoskRecognizer;
 
+/**
+ * Batch recognizer object
+ */
+typedef struct VoskBatchRecognizer VoskBatchRecognizer;
 
 /** Loads model data from the file and returns the model object
  *
@@ -282,6 +286,12 @@ void vosk_recognizer_set_result_options(VoskRecognizer *recognizer, const char *
 void vosk_recognizer_set_words(VoskRecognizer *recognizer, int words);
 
 
+/** Set NLSML output
+ * @param nlsml - boolean value
+ */
+void vosk_recognizer_set_nlsml(VoskRecognizer *recognizer, int nlsml);
+
+
 /** Accept voice data
  *
  *  accept and process new chunk of voice data
@@ -379,6 +389,33 @@ void vosk_gpu_init();
  *  Has no effect if HAVE_CUDA flag is not set.
  */
 void vosk_gpu_thread_init();
+
+/** Creates the batch recognizer object
+ *
+ *  @returns recognizer object or NULL if problem occured */
+VoskBatchRecognizer *vosk_batch_recognizer_new();
+
+/** Releases batch recognizer object
+ *  Underlying model is also unreferenced and if needed released */
+void vosk_batch_recognizer_free(VoskBatchRecognizer *recognizer);
+
+/** Accept batch voice data */
+void vosk_batch_recognizer_accept_waveform(VoskBatchRecognizer *recognizer, int id, const char *data, int length);
+
+/** Closes the stream */
+void vosk_batch_recognizer_finish_stream(VoskBatchRecognizer *recognizer, int id);
+
+/** Return results */
+const char *vosk_batch_recognizer_front_result(VoskBatchRecognizer *recognizer, int id);
+
+/** Release and free first retrieved result */
+void vosk_batch_recognizer_pop(VoskBatchRecognizer *recognizer, int id);
+
+/** Wait for the processing */
+void vosk_batch_recognizer_wait(VoskBatchRecognizer *recognizer);
+
+/** Get amount of pending chunks for more intelligent waiting */
+int vosk_batch_recognizer_get_pending_chunks(VoskBatchRecognizer *recognizer, int id);
 
 #ifdef __cplusplus
 }
